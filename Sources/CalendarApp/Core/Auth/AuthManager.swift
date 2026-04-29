@@ -167,19 +167,49 @@ class AuthManager: ObservableObject, GoogleAuthDelegate {
 
     private func readOAuthConfig() throws -> (clientID: String, clientSecret: String) {
         let env = ProcessInfo.processInfo.environment
-        let clientID = env[Self.clientIDEnvKey]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let clientSecret = env[Self.clientSecretEnvKey]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let dotenv = readDotEnvFile()
+        let clientID = (env[Self.clientIDEnvKey] ?? dotenv[Self.clientIDEnvKey] ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let clientSecret = (env[Self.clientSecretEnvKey] ?? dotenv[Self.clientSecretEnvKey] ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !clientID.isEmpty, !clientSecret.isEmpty else {
             throw NSError(
                 domain: "AuthError",
                 code: 7,
                 userInfo: [
-                    NSLocalizedDescriptionKey: "Missing OAuth credentials. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in environment variables."
+                    NSLocalizedDescriptionKey: "Missing OAuth credentials. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in environment variables or .env file."
                 ]
             )
         }
 
         return (clientID, clientSecret)
+    }
+
+    private func readDotEnvFile() -> [String: String] {
+        let url = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+            .appendingPathComponent(".env")
+        guard let content = try? String(contentsOf: url, encoding: .utf8) else {
+            return [:]
+        }
+
+        var values: [String: String] = [:]
+        let lines = content.split(whereSeparator: \Character.isNewline)
+        for rawLine in lines {
+            let line = rawLine.trimmingCharacters(in: .whitespaces)
+            if line.isEmpty || line.hasPrefix("#") { continue }
+
+            let parts = line.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+            guard parts.count == 2 else { continue }
+
+            let key = String(parts[0]).trimmingCharacters(in: .whitespaces)
+            var value = String(parts[1]).trimmingCharacters(in: .whitespaces)
+            if (value.hasPrefix("\"") && value.hasSuffix("\"")) || (value.hasPrefix("'") && value.hasSuffix("'")) {
+                value = String(value.dropFirst().dropLast())
+            }
+            values[key] = value
+        }
+
+        return values
     }
 }

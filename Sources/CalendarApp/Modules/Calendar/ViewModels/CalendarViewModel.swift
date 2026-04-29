@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import CoreGraphics
 
 enum CalendarViewMode: String, CaseIterable {
     case day = "Day"
@@ -14,6 +15,7 @@ class CalendarViewModel: ObservableObject {
     @Published var todayEvents: [CalendarEvent] = []  // Always today's events for the menu bar
     @Published var isLoading: Bool = false
     @Published var errorMessage: String? = nil
+    @Published var preferredPopoverWidth: CGFloat = 300
     
     @Published var selectedDate: Date = Date()
     @Published var viewMode: CalendarViewMode = .day
@@ -85,6 +87,7 @@ class CalendarViewModel: ObservableObject {
 
             self.events = fetchedEvents
             self.items = combineItems(events: fetchedEvents, tasks: fetchedTasks)
+            updatePreferredPopoverWidth()
         } catch {
             self.errorMessage = error.localizedDescription
         }
@@ -167,5 +170,21 @@ class CalendarViewModel: ObservableObject {
         }
 
         return (eventItems + taskItems).sorted { $0.displayDate < $1.displayDate }
+    }
+
+    private func updatePreferredPopoverWidth() {
+        let visibleItems = items.filter { $0.kind == .event }
+
+        guard !visibleItems.isEmpty else {
+            preferredPopoverWidth = 300
+            return
+        }
+
+        let longestTitle = visibleItems.map { $0.title.count }.max() ?? 0
+        let longestSecondary = visibleItems.map { $0.secondaryText.count }.max() ?? 0
+        let longestNotes = visibleItems.compactMap { $0.notes?.count }.max() ?? 0
+
+        let estimatedWidth = 220 + (longestTitle * 6) + (longestSecondary * 3) + (longestNotes * 2)
+        preferredPopoverWidth = CGFloat(min(max(estimatedWidth, 100), 300))
     }
 }

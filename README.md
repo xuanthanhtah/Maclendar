@@ -23,6 +23,7 @@ Cấu hình OAuth (bắt buộc)
    - Copy **Client ID** và **Client Secret**
 
 2. Tạo file `~/.env` trong home directory:
+
    ```bash
    cat > ~/.env << EOF
    GOOGLE_CLIENT_ID=<paste_client_id>
@@ -35,6 +36,7 @@ Cấu hình OAuth (bắt buộc)
 **Cho nhà phát triển (chạy từ source):**
 
 - Cách A (khuyến nghị): Tạo file `.env` từ mẫu:
+
   ```bash
   cp .env.example .env
   # Mở .env và điền Client ID + Secret

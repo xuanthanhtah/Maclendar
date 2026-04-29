@@ -23,14 +23,14 @@ class StatusBarController {
     private var eventMonitor: GlobalEventMonitor?
     private var viewModel: CalendarViewModel
     private var cancellables = Set<AnyCancellable>()
+    private var lastPopoverWidth: CGFloat = 300
+    private let minStatusLength: CGFloat = 44
+    private let maxStatusLength: CGFloat = 180
     
-    // Fixed max length for the status bar item to prevent popover jumping
-    private let maxStatusLength: CGFloat = 220
-
     init(popover: NSPopover, viewModel: CalendarViewModel) {
         self.popover = popover
         self.viewModel = viewModel
-        self.statusItem = NSStatusBar.system.statusItem(withLength: maxStatusLength)
+        self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         
         if let button = statusItem.button {
             button.image = NSImage(systemSymbolName: "calendar", accessibilityDescription: "Calendar")
@@ -49,6 +49,17 @@ class StatusBarController {
             .receive(on: RunLoop.main)
             .sink { [weak self] events in
                 self?.updateMenuBarText(with: events)
+            }
+            .store(in: &cancellables)
+
+        viewModel.$preferredPopoverWidth
+            .receive(on: RunLoop.main)
+            .sink { [weak self] width in
+                guard let self else { return }
+                self.lastPopoverWidth = width
+                if !self.popover.isShown {
+                    self.popover.contentSize = NSSize(width: width, height: self.popover.contentSize.height)
+                }
             }
             .store(in: &cancellables)
     }
@@ -77,8 +88,9 @@ class StatusBarController {
             button.title = " \(timeString) \(truncatedTitle)"
         } else {
             button.title = ""
-            // Keep fixed length so popover position doesn't change
         }
+
+        updateStatusItemWidth(for: button)
     }
     
     @objc func togglePopover(sender: AnyObject) {
@@ -91,6 +103,7 @@ class StatusBarController {
     
     func showPopover(_ sender: AnyObject) {
         if let button = statusItem.button {
+            popover.contentSize = NSSize(width: lastPopoverWidth, height: popover.contentSize.height)
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: NSRectEdge.minY)
         }
     }
@@ -106,6 +119,17 @@ class StatusBarController {
                     self?.hidePopover(event)
                 }
             }
+        }
+    }
+
+    private func updateStatusItemWidth(for button: NSStatusBarButton) {
+        button.sizeToFit()
+
+        let measuredWidth = button.frame.width
+        let clampedWidth = min(max(measuredWidth, minStatusLength), maxStatusLength)
+
+        if abs(statusItem.length - clampedWidth) > 0.5 {
+            statusItem.length = clampedWidth
         }
     }
 }

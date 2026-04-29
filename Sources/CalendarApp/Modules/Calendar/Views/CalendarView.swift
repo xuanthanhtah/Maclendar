@@ -40,6 +40,17 @@ struct CalendarView: View {
                         // Right: Action buttons
                         HStack(spacing: 12) {
                             Button(action: {
+                                activeSheet = .create
+                            }) {
+                                Image(systemName: "calendar.badge.plus")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.primary)
+                                    .frame(width: 24, height: 24)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .help("Add Event")
+
+                            Button(action: {
                                 Task {
                                     await viewModel.loadTodayEvents()
                                     await viewModel.loadEvents()
@@ -129,19 +140,6 @@ struct CalendarView: View {
                         }
                     }
 
-                    Button(action: {
-                        activeSheet = .create
-                    }) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(width: 42, height: 42)
-                            .background(Color.blue)
-                            .clipShape(Circle())
-                            .shadow(color: .black.opacity(0.18), radius: 6, x: 0, y: 2)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .padding(14)
                 }
                 .sheet(item: $activeSheet) { destination in
                     switch destination {
@@ -213,7 +211,7 @@ struct CalendarView: View {
                 .padding()
             }
         }
-        .frame(width: 320, height: 400)
+        .frame(maxWidth: .infinity, minHeight: 400, maxHeight: 400, alignment: .leading)
         .onAppear {
             Task {
                 await viewModel.loadTodayEvents()
@@ -303,6 +301,7 @@ struct CalendarListRow: View {
             Spacer(minLength: 0)
         }
         .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(NSColor.controlBackgroundColor))
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }

@@ -187,9 +187,23 @@ class AuthManager: ObservableObject, GoogleAuthDelegate {
     }
 
     private func readDotEnvFile() -> [String: String] {
-        let url = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-            .appendingPathComponent(".env")
-        guard let content = try? String(contentsOf: url, encoding: .utf8) else {
+        let fileManager = FileManager.default
+        
+        // Search in multiple locations: home directory first, then current directory
+        let searchPaths = [
+            fileManager.homeDirectoryForCurrentUser.appendingPathComponent(".env"),
+            URL(fileURLWithPath: fileManager.currentDirectoryPath).appendingPathComponent(".env")
+        ]
+        
+        var envContent: String?
+        for path in searchPaths {
+            if let content = try? String(contentsOf: path, encoding: .utf8) {
+                envContent = content
+                break
+            }
+        }
+        
+        guard let content = envContent else {
             return [:]
         }
 
